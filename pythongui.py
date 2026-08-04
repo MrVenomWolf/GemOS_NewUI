@@ -1,4 +1,4 @@
-
+import ctypes
 import google
 from datetime import time
 import os
@@ -69,7 +69,7 @@ class GeminiChatApp:
         self.root.iconbitmap("blume_logo.ico")
 
        
- 
+    
         self.api_key = API_KEY
         self.client = None
         self.chat_session = None
@@ -406,6 +406,12 @@ class GeminiChatApp:
  
  
 if __name__ == "__main__":
+    # Tells Windows this app has its own Taskbar Identity
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("gemos.chat.app")
+    except AttributeError:
+        pass  # Ignore on non-Windows platforms
+
     root = tk.Tk()
     app = GeminiChatApp(root)
     root.mainloop()
