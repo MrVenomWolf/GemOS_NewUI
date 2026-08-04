@@ -5,6 +5,7 @@ Styled like a dark IDE, with support for viewing code responses in boxed,
 copyable code blocks and attaching local code/text files to your prompt.
 
 If you have an API key and want to use the model, just plug and play.
+PS - Am a big watchdogs fan
 
 ## Features
 
