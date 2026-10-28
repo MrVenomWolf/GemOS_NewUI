@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GemOS</title>
+  <link rel="icon" href="/blume_logo.ico" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Minimalist Collapsible Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <img src="/blume_logo.ico" alt="GemOS" class="brand-logo" />
+          <span class="brand-title">GemOS</span>
+        </div>
+        <button id="new-session-btn" class="icon-action-btn" title="New Conversation (⌘N / Ctrl+N)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input id="session-search-input" type="text" placeholder="Search" spellcheck="false" />
+      </div>
+
+      <div id="session-list" class="session-list"></div>
+
+      <div class="sidebar-bottom">
+        <button id="open-settings-btn" class="sidebar-footer-btn">
+          <span id="api-status-dot" class="status-dot"></span>
+          <span id="api-status-title" class="footer-btn-text">Settings &amp; API Key</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Pure AMOLED Main Canvas -->
+    <main class="main-canvas" id="drop-zone">
+      <!-- Translucent Floating Header -->
+      <header class="glass-header">
+        <div class="header-left">
+          <button id="toggle-sidebar-btn" class="icon-action-btn" title="Toggle Sidebar (⌘B / Ctrl+B)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/>
+            </svg>
+          </button>
+          <input id="session-title-input" class="session-title-input" type="text" value="New Conversation" spellcheck="false" title="Rename conversation" />
+        </div>
+
+        <div class="header-center">
+          <div class="model-pill">
+            <select id="model-select" class="model-select" title="Choose Gemini Model"></select>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-icon">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+          <button id="refresh-models-btn" class="icon-action-btn" title="Sync Latest Models from Google AI">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="header-right">
+          <button id="clear-session-btn" class="icon-action-btn" title="Clear Conversation (Ctrl+L)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+          <button id="export-session-btn" class="icon-action-btn" title="Export Markdown">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Drag and Drop Overlay -->
+      <div id="drop-overlay" class="drop-overlay hidden">
+        <div class="drop-card">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          <p>Drop files or images to attach</p>
+        </div>
+      </div>
+
+      <!-- Conversation Scroll Area -->
+      <div id="chat-scroll-container" class="chat-scroll-container">
+        <!-- Minimal Apple Empty State -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-hero">
+            <div class="hero-orb">
+              <img src="/blume_logo.ico" alt="GemOS" class="hero-logo-img" />
+            </div>
+            <h1>How can I help you today?</h1>
+          </div>
+
+          <div class="suggestion-pills">
+            <button class="suggestion-pill" data-prompt="Review this code for bugs, edge cases, and cleaner ways to write it: ">
+              Code review &amp; optimization
+            </button>
+            <button class="suggestion-pill" data-prompt="Design a clean, minimal architecture for: ">
+              System architecture
+            </button>
+            <button class="suggestion-pill" data-prompt="Debug this error and give me the exact fix: ">
+              Debug an issue
+            </button>
+            <button class="suggestion-pill" data-prompt="Explain this concept simply and concisely: ">
+              Explain a concept
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Stream -->
+        <div id="messages-list" class="messages-list"></div>
+      </div>
+
+      <!-- Floating Pill Composer -->
+      <div class="composer-container">
+        <div class="composer-pill">
+          <!-- Attachments Tray -->
+          <div id="attachments-tray" class="attachments-tray hidden"></div>
+
+          <div class="composer-row">
+            <input type="file" id="file-input" multiple class="hidden" />
+            <button id="attach-file-btn" class="composer-icon-btn" title="Attach file or image">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+
+            <textarea
+              id="prompt-input"
+              class="prompt-textarea"
+              rows="1"
+              placeholder="Message GemOS..."
+              spellcheck="true"
+            ></textarea>
+
+            <button id="stop-gen-btn" class="composer-stop-btn hidden" title="Stop generating (Esc)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="4" width="16" height="16" rx="3"/>
+              </svg>
+            </button>
+
+            <button id="send-btn" class="composer-send-btn" title="Send (Enter)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19V5M5 12l7-7 7 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Minimal Apple-Style Settings Sheet Modal -->
+  <div id="settings-modal" class="modal-backdrop hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button id="close-settings-btn" class="icon-action-btn">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="setting-block">
+          <label class="setting-label">Gemini API Key</label>
+          <div class="key-row">
+            <input id="settings-api-key" type="password" class="apple-input" placeholder="Paste API key..." autocomplete="off" />
+            <button id="validate-key-btn" class="apple-secondary-btn">Verify</button>
+          </div>
+          <p id="api-key-status-msg" class="setting-caption">
+            Stored locally &amp; synced with <code>k.txt</code>. Get a key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.
+          </p>
+        </div>
+
+        <div class="setting-grid-2">
+          <div class="setting-block">
+            <label class="setting-label">Default Model</label>
+            <select id="settings-default-model" class="apple-select"></select>
+          </div>
+          <div class="setting-block">
+            <label class="setting-label">Persona Preset</label>
+            <select id="persona-select" class="apple-select"></select>
+          </div>
+        </div>
+
+        <div class="setting-block">
+          <div class="setting-label-row">
+            <label class="setting-label">System Instruction</label>
+            <span id="temp-val-label" class="setting-caption">Temp: 0.7</span>
+          </div>
+          <textarea id="session-system-prompt" class="apple-textarea" rows="4" placeholder="Custom instructions for how GemOS should respond..."></textarea>
+        </div>
+
+        <div class="setting-block">
+          <label class="setting-label">Creativity (Temperature)</label>
+          <input id="session-temp-slider" type="range" min="0" max="2" step="0.05" value="0.7" class="apple-slider" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancel-settings-btn" class="apple-secondary-btn">Cancel</button>
+        <button id="save-settings-btn" class="apple-primary-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimal Spotlight Command Palette (⌘K / Ctrl+K) -->
+  <div id="cmd-palette-modal" class="modal-backdrop hidden">
+    <div class="spotlight-card">
+      <div class="spotlight-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input id="cmd-palette-input" type="text" placeholder="Type a command..." autocomplete="off" />
+      </div>
+      <div id="cmd-palette-list" class="spotlight-list"></div>
+    </div>
+  </div>
+
+  <!-- Subtle Floating Pill Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

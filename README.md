@@ -1,80 +1,147 @@
-# Gemini Desktop Assistant
+<div align="center">
 
-A simple desktop chat app for Google's Gemini API, built with Python and Tkinter.
-Styled like a dark IDE, with support for viewing code responses in boxed,
-copyable code blocks and attaching local code/text files to your prompt.
+<img src="assets/banner.svg" alt="GemOS Banner" width="100%" />
 
-If you have an API key and want to use the model, just plug and play.
-PS - Am a big watchdogs fan
+<br />
 
-## Features
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-0a84ff?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Google GenAI SDK](https://img.shields.io/badge/SDK-google--genai-30d158?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Storage](https://img.shields.io/badge/Persistence-SQLite3-f5f5f7?style=flat-square&logo=sqlite&logoColor=white)](#architecture)
+[![License: MIT](https://img.shields.io/badge/License-MIT-86868b?style=flat-square)](LICENSE)
 
-- Chat with Gemini directly from a desktop window (no browser needed)
-- Dark, IDE-inspired theme
-- Code responses render in separate boxes with a language label and a Copy button
-- Attach local files (`.py`, `.js`, `.java`, `.cpp`, and more) to include their
-  contents in your message
-- Runs on a background thread so the UI never freezes while waiting on a response
+**A minimalist, pure-AMOLED desktop and web workbench for Google's Gemini API (`google-genai`).**  
+Designed for software engineering, system architecture, multimodal analysis, and inline image generation with zero bloat.
 
-## Requirements
+[Features](#-features) • [Screenshots](#-screenshots) • [Quick Start](#-quick-start) • [API Key Setup](#-api-key-configuration) • [Keyboard Shortcuts](#-keyboard-shortcuts) • [Architecture](#-architecture)
 
-- Python 3.9+
-- A Gemini API key — get one free at https://aistudio.google.com/apikey
+</div>
 
-## Setup
+---
 
-1. Clone this repo:
-   ```
-   git clone https://github.com/<your-username>/<your-repo>.git
-   cd <your-repo>
-   ```
+## 📸 Screenshots
 
-2. Install the dependency:
-   ```
-   python -m pip install google-genai
-   ```
+### 1. Minimalist AMOLED Canvas & Quick-Start Prompts
+<p align="center">
+  <img src="assets/screenshot-home.png" alt="GemOS Home Canvas" width="100%" />
+</p>
 
-3. Set your API key as an environment variable:
+### 2. Multi-File Context, Live SSE Streaming & Styled Code Cards
+<p align="center">
+  <img src="assets/screenshot-chat.png" alt="GemOS Code & File Analysis" width="100%" />
+</p>
 
-   **Windows (PowerShell):**
-   ```
-   $env:GEMINI_API_KEY="your_key_here"
-   ```
+### 3. Live Model Sync, Persona Presets & API Key Verification
+<p align="center">
+  <img src="assets/screenshot-settings.png" alt="GemOS Settings Sheet" width="100%" />
+</p>
 
-   **Mac/Linux (bash):**
-   ```
-   export GEMINI_API_KEY="your_key_here"
-   ```
+---
 
-   Alternatively, just run the app without setting this — it will prompt you
-   for a key on launch instead.
+## ✨ Features
 
-4. Run the app:
-   ```
-   python pythongui.py
-   ```
+- **⚡ Real-Time Token Streaming (SSE):** Responses stream token-by-token over Server-Sent Events with latency tracking (`TTFT` and total elapsed time) and instant **Stop / Abort (`Esc`)** support.
+- **🔄 Live Google AI Model Discovery:** Automatically queries your Google AI Studio account to sync and sort the newest models (`Gemini 4 Argon`, `Gemini 3.8 Flash`, `Gemini 2.5 Pro`, and image generation models) with one-click refresh.
+- **🎨 Inline Image Generation & Lightbox:** Native support for Gemini / Nano Banana image generation models with a smooth shimmer loading skeleton, fullscreen lightbox preview, and one-click PNG download.
+- **📎 Unlimited Multi-File, PDF & Image Uploads:** Drag and drop or attach any number of source code files (`.py`, `.ts`, `.js`, `.rs`, `.go`, `.cpp`, `.sql`, `.json`, `.toml`, etc.), PDFs (`.pdf`), and images (`.png`, `.jpg`, `.webp`) with a `10,000,000` character per-file ceiling so large files are never truncated.
+- **💾 Automatic SQLite Persistence:** Every conversation, attachment, and model configuration is stored locally in `backend/gemos.db`. Search across all conversations in real time, rename threads inline, or export any session to Markdown.
+- **🧠 Tactical Persona Presets:** Switch between *GemOS Core*, *DedSec / CTos Operator*, *Principal Architect*, and *Zero-Fluff Code Only*, or customize the system prompt and creativity (`Temperature`) per conversation.
+- **🖥️ Native Desktop Window or Browser Mode:** Launches as a native desktop window via **PyWebView** or **GTK3 / WebKit2**, or seamlessly falls back to frameless **Chromium/Chrome/Edge `--app` mode** or your default browser.
 
-## Optional: Custom window icon
+---
 
-Drop a `.ico` file into the project folder and update the `ICON_PATH` constant
-near the top of `pythongui.py` to point to it.
+## 🚀 Quick Start
 
-## Optional: Build a standalone .exe (Windows)
-
-```
-python -m pip install pyinstaller
-pyinstaller --onefile --windowed --name GeminiAssistant pythongui.py
+### 1. Clone the Repository
+```bash
+git clone https://github.com/MrVenomWolf/GemOS_NewUI.git
+cd GemOS_NewUI
 ```
 
-The built executable will appear in the `dist/` folder.
+### 2. Install Dependencies
+Requires **Python 3.9+**:
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-## Notes
+*(Optional)* For a native desktop window wrapper if not using GTK/WebKit2 or Chromium app mode:
+```bash
+python3 -m pip install pywebview
+```
 
-- This project uses the `google-genai` SDK (not the older, deprecated
-  `google-generativeai` package).
-- Attached files are capped at 50,000 characters to avoid oversized requests;
-  larger files get truncated with a note.
+### 3. Launch GemOS
 
-## License
+**Standard Desktop Launch (Native Window / App-Mode Fallback):**
+```bash
+python3 pythongui.py
+```
 
-MIT — feel free to fork and modify.
+**Open Directly in Web Browser:**
+```bash
+python3 pythongui.py --browser
+```
+
+**Headless Server Mode (Custom Host / Port):**
+```bash
+python3 pythongui.py --server-only --host 127.0.0.1 --port 8765
+```
+
+---
+
+## 🔑 API Key Configuration
+
+GemOS resolves your [Google AI Studio API Key](https://aistudio.google.com/apikey) automatically in the following order:
+
+1. **In-App Settings Modal (`Ctrl+,` / `⌘,`):** Paste your key and click **Verify** to validate it live against Google AI Studio and sync all available models.
+2. **Environment Variable:**
+   ```bash
+   export GEMINI_API_KEY="your-api-key-here"
+   ```
+3. **Local `k.txt` File:** Place your API key inside a `k.txt` file in the project root directory.
+   > **Security Note:** Both `k.txt` and `backend/gemos.db` are listed in `.gitignore` so your API key and private conversation history are never committed to Git.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Ctrl + K` / `⌘ + K` | Open **Spotlight Command Palette** |
+| `Ctrl + N` / `⌘ + N` | Start a **New Conversation** |
+| `Ctrl + B` / `⌘ + B` | Toggle **Collapsible Sidebar** |
+| `Ctrl + ,` / `⌘ + ,` | Open **Settings & API Key Sheet** |
+| `Enter` | Send message (`Shift + Enter` for newline) |
+| `Esc` | **Stop / Abort** active stream or close active modal |
+
+---
+
+## 🏗️ Architecture
+
+GemOS is structured as a clean, zero-framework full-stack application:
+
+```text
+gemos_new_gui/
+├── assets/
+│   ├── banner.svg              # Project hero banner
+│   ├── screenshot-home.png     # Minimalist AMOLED welcome state
+│   ├── screenshot-chat.png     # Multi-file context & code cards view
+│   └── screenshot-settings.png # Settings, persona & live model sync sheet
+├── backend/
+│   ├── __init__.py
+│   ├── database.py             # SQLite3 persistence for sessions, messages & settings
+│   ├── gemini_service.py       # Google GenAI SDK client, live model discovery & SSE generator
+│   └── server.py               # Multi-threaded HTTP + SSE streaming REST API server
+├── frontend/
+│   ├── index.html              # Minimalist AMOLED UI layout, modals & composer
+│   ├── styles.css              # True-black design system, animations & code card styling
+│   └── app.js                  # Reactive frontend state, SSE stream reader & Markdown parser
+├── blume_logo.ico              # Application icon
+├── pythongui.py                # Desktop window launcher & CLI entrypoint
+├── requirements.txt            # Python package dependencies
+└── LICENSE                     # MIT License
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
