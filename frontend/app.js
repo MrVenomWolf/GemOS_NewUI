@@ -349,12 +349,15 @@
 
   function isImageGenerationModel(modelId) {
     const m = (modelId || "").toLowerCase();
-    return m.includes("image") || m.includes("banana");
+    return m.includes("image") || m.includes("banana") || m.includes("imagen");
   }
 
   function isImagePrompt(text) {
     const t = (text || "").toLowerCase();
-    return /\b(generate|create|draw|paint|render|make|design|sketch)\b.*\b(image|picture|photo|art|wallpaper|logo|illustration|icon)\b/.test(t);
+    if (t.includes("nanobanana") || t.includes("nano banana") || t.includes("nano-banana")) {
+      return true;
+    }
+    return /\b(generate|create|draw|paint|render|make|design|sketch|illustrate)\b[\s\S]{0,45}\b(image|picture|photo|art|wallpaper|logo|illustration|icon|poster|avatar|drawing)\b/.test(t);
   }
 
   function buildGeneratedImagesHtml(attachments) {
@@ -535,8 +538,11 @@
     el.emptyState.classList.add("hidden");
 
     const sessionId = state.activeSession.id;
+    let streamingRow = null;
     let streamingBody = null;
     let accumulatedText = "";
+    let streamedImages = [];
+    let reader = null;
 
     try {
       const response = await fetch(`/api/sessions/${sessionId}/stream`, {
@@ -553,11 +559,12 @@
 
       if (!response.ok) throw new Error(await response.text());
 
-      const reader = response.body.getReader();
+      reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
+      let streamEnded = false;
 
-      while (true) {
+      while (!streamEnded) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -585,7 +592,7 @@
             const showImgSkeleton =
               isImageGenerationModel(el.modelSelect.value) || isImagePrompt(userText);
 
-            const streamingRow = document.createElement("div");
+            streamingRow = document.createElement("div");
             streamingRow.className = "message-row assistant";
             streamingRow.innerHTML = `
               <div class="assistant-container">
@@ -616,30 +623,52 @@
               scrollToBottom();
             }
           } else if (event.type === "image") {
-            const rows = el.messagesList.querySelectorAll(".message-row.assistant");
-            const lastRow = rows[rows.length - 1];
-            const slot = lastRow && lastRow._imageSlot;
-            if (slot && event.image) {
-              slot.innerHTML = buildGeneratedImagesHtml([event.image]);
+            if (event.image) {
+              streamedImages.push(event.image);
+            }
+            const slot = streamingRow && streamingRow._imageSlot;
+            if (slot && streamedImages.length) {
+              slot.innerHTML = buildGeneratedImagesHtml(streamedImages);
               scrollToBottom();
             }
           } else if (event.type === "done" || event.type === "cancelled") {
             if (event.assistant_message) {
+              if (streamedImages.length > 0) {
+                event.assistant_message.attachments = streamedImages;
+              }
               state.activeSession.messages.push(event.assistant_message);
+              if (streamingRow && streamingRow.parentNode) {
+                streamingRow.outerHTML = buildMessageRowHtml(event.assistant_message);
+              } else {
+                renderMessages();
+              }
+            } else {
+              renderMessages();
             }
-            await refreshSessionList();
-            renderMessages();
+            refreshSessionList().catch(() => {});
+            streamEnded = true;
+            break;
           } else if (event.type === "error") {
+            if (streamingRow && streamingRow._imageSlot) {
+              streamingRow._imageSlot.innerHTML = "";
+            }
             if (streamingBody) {
               streamingBody.classList.remove("streaming-cursor");
               streamingBody.innerHTML = `<p style="color: var(--danger)">${escapeHtml(event.error)}</p>`;
             }
+            streamEnded = true;
+            break;
           }
         }
       }
     } catch (err) {
       showToast(`Error: ${err.message}`);
     } finally {
+      if (reader) {
+        try {
+          await reader.cancel();
+        } catch (_) {}
+      }
       state.isStreaming = false;
       el.stopGenBtn.classList.add("hidden");
       el.sendBtn.classList.remove("hidden");

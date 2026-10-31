@@ -31,6 +31,8 @@ def set_windows_app_id():
 
 def launch_gtk_webkit_window(url: str) -> bool:
     """Launch a native desktop window using GTK3 + WebKit2 in a child process so GL/driver errors fall back cleanly."""
+    if not sys.platform.startswith("linux"):
+        return False
     helper_code = f"""
 import os, signal, sys
 os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
@@ -117,7 +119,10 @@ def launch_app_mode_browser(url: str) -> bool:
         "chromium-browser",
         "microsoft-edge",
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
     ]
     for bin_name in candidates:
         try:

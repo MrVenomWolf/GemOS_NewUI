@@ -65,16 +65,19 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
         pass
 
     def _send_json(self, data: Any, status: int = 200):
+        self.close_connection = True
         payload = json.dumps(data).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(payload)
+        self.wfile.flush()
 
     def _read_json(self) -> Dict[str, Any]:
         length = int(self.headers.get("Content-Length", 0))
@@ -84,7 +87,9 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
         return json.loads(raw.decode("utf-8"))
 
     def do_OPTIONS(self):
+        self.close_connection = True
         self.send_response(204)
+        self.send_header("Connection", "close")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
@@ -307,11 +312,13 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
         api_key = db.get_setting("api_key")
         set_cancelled(session_id, False)
 
-        # Send SSE headers
+        # Send SSE headers and ensure connection closes when stream ends so client reader.read() never hangs
+        self.close_connection = True
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("Connection", "close")
+        self.send_header("X-Accel-Buffering", "no")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
@@ -358,7 +365,7 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
                     final_meta = {
                         "cancelled": True,
                         "elapsed_ms": event.get("elapsed_ms", 0),
-                        "model": model_to_use,
+                        "model": event.get("model", model_to_use),
                     }
                     saved_msg = db.add_message(
                         session_id=session_id,
@@ -367,7 +374,8 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
                         attachments=final_images,
                         metadata=final_meta,
                     )
-                    send_sse({"type": "cancelled", "assistant_message": saved_msg})
+                    wire_msg = {**saved_msg, "attachments": [{k: v for k, v in a.items() if k != "data_base64"} for a in final_images]}
+                    send_sse({"type": "cancelled", "assistant_message": wire_msg})
                     return
                 elif event["type"] == "error":
                     err_text = event.get("error", "Unknown error")
@@ -380,7 +388,7 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
                         "elapsed_ms": event.get("elapsed_ms", 0),
                         "ttft_ms": event.get("ttft_ms", 0),
                         "usage": event.get("usage", {}),
-                        "model": model_to_use,
+                        "model": event.get("model", model_to_use),
                     }
                     saved_msg = db.add_message(
                         session_id=session_id,
@@ -389,13 +397,16 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
                         attachments=final_images,
                         metadata=final_meta,
                     )
+                    # Avoid sending multi-MB base64 images a second time over SSE in 'done'
+                    wire_msg = {**saved_msg, "attachments": [{k: v for k, v in a.items() if k != "data_base64"} for a in final_images]}
                     send_sse(
                         {
                             "type": "done",
-                            "assistant_message": saved_msg,
+                            "assistant_message": wire_msg,
                             "session_title": session["title"],
                         }
                     )
+                    return
         except (BrokenPipeError, ConnectionResetError):
             set_cancelled(session_id, True)
         except Exception as e:
@@ -425,11 +436,14 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
             if os.path.isfile(ico_path):
                 with open(ico_path, "rb") as f:
                     data = f.read()
+                self.close_connection = True
                 self.send_response(200)
                 self.send_header("Content-Type", "image/x-icon")
                 self.send_header("Content-Length", str(len(data)))
+                self.send_header("Connection", "close")
                 self.end_headers()
                 self.wfile.write(data)
+                self.wfile.flush()
                 return
 
         safe_rel = os.path.normpath(path.lstrip("/"))
@@ -451,12 +465,20 @@ class GemOSRequestHandler(BaseHTTPRequestHandler):
         with open(full_path, "rb") as f:
             content = f.read()
 
+        self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(content)
+        self.wfile.flush()
+
+
+class GemOSHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
 
 
 def find_free_port(preferred: int = 8765) -> int:
@@ -470,7 +492,7 @@ def find_free_port(preferred: int = 8765) -> int:
 
 def start_server(host: str = "127.0.0.1", port: Optional[int] = None) -> tuple[ThreadingHTTPServer, int]:
     actual_port = port or find_free_port(8765)
-    server = ThreadingHTTPServer((host, actual_port), GemOSRequestHandler)
+    server = GemOSHTTPServer((host, actual_port), GemOSRequestHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return server, actual_port
